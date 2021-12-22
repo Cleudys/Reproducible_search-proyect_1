@@ -159,3 +159,46 @@ med2 <- round(median(PerDay),1)
 
 el promedio con valores imputados de los pasos por dia es de `r prom2` y la mediana de `r med2`.
 
+## ¿Existen diferencias en los patrones de actividad entre los días de semana y los fines de semana?
+
+1. Cree una nueva variable de factor en el conjunto de datos con dos niveles: "día de la semana" y "fin de semana", que indican si una fecha determinada es un día de la semana o un fin de semana.
+
+```{r}
+df2 <- df2 %>% 
+  mutate(dia=weekdays(df2$date))
+
+
+df2$days <- ifelse(df2$dia=="sábado" | df2$dia=="domingo","weekend","weekday")
+df2 <- df2[,-4]
+                  
+head(df2)
+
+  
+```
+
+2. Haga un diagrama de panel que contenga un diagrama de serie de tiempo (es decir, tipo = "l") del intervalo de 5 minutos (eje x) y el número medio de pasos dados, promediado entre todos los días de la semana o los días de fin de semana (eje y). Consulte el archivo README en el repositorio de GitHub para ver un ejemplo de cómo debería verse este gráfico con datos simulados.
+
+```{r}
+stepsWeekday <- tapply(df2[df2$days=="weekday", ]$steps, df2[df2$days=="weekday", ]$interval, mean, na.rm=TRUE)
+stepsWeekend <- tapply(df2[df2$days=="weekend", ]$steps , df2[df2$days=="weekend", ]$interval, mean, na.rm=TRUE)
+
+par(mfrow=c(1,2))
+
+#Actividades de los dias de semana
+plot(as.numeric(names(stepsWeekday)), 
+     stepsWeekday, 
+     xlab = "Intervalo", 
+     ylab = "Steps", 
+     main = "Actividad (dias de semana)", 
+     type = "l")
+
+#Actividades de los fines de semana
+plot(as.numeric(names(stepsWeekend)), 
+     stepsWeekend, 
+     xlab = "Intervalo", 
+     ylab = "Steps", 
+     main = "Actividades (fines de semana)", 
+     type = "l")
+```
+
+Si, al imputar los valores faltantes se evidencia diferencias entre los patrones.
