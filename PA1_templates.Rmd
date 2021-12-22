@@ -1,0 +1,161 @@
+---
+title: "PA1_template"
+author: "Cleudys De Jesus"
+date: "21/12/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Course proyect 1
+==================
+
+## Cargando y preprocesando los datos
+
+### Cargando los Datos
+```{r reading, cache=TRUE}
+
+
+CSVs_From_ZIP<-function(url) {
+  # crea un archivo temporal
+  temp <- tempfile()
+  
+  # descarga el .zip en ese archivo temporal
+  download.file(url,temp)
+  
+  # identifica el contenido del archivo
+  file_list <- unzip(temp, list = TRUE)
+  
+  # extrae documento por documento
+  lapply(file_list$Name,function(x) {
+    suppressMessages(
+      readr::read_csv(unz(temp,x)))->hh
+    return(hh)
+  })->lista
+  
+  # se desconecta del archivo temporal
+  unlink(temp)
+  
+  # devuelve la lista con los datasets
+  return(lista)
+}
+
+df <- CSVs_From_ZIP(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip")
+
+df <- df[[1]]
+
+
+```
+
+### preprocesando los datos
+Convertir los datos de tiempo como un POCIXct data
+T
+```{r, message=FALSE, warning=FALSE}
+library(lubridate)
+df$date <- as.POSIXct(df$date)
+```
+
+### Fase exploratoria de los datos
+```{r exploracion}
+str(df)
+
+summary(df$steps)
+summary(df$date)
+summary(df$interval)
+
+apply(is.na(df),2, sum)
+
+
+
+```
+La variable step contiene 2304 valores faltantes, las demas variables tienen sus datos completos.
+
+## ¿Cuál es el número total medio de pasos dados por día?
+
+1. Calcule el número total de pasos dados por día.
+```{r pasos, warning=FALSE, message=FALSE}
+attach(df)
+library(dplyr)
+
+StepsDay <- tapply(df$steps, df$date, sum)
+StepsDay
+```
+
+
+2. Si no comprende la diferencia entre un histograma y un diagrama de barras, investigue la diferencia entre ellos. Haga un histograma del número total de pasos dados cada día.
+```{r}
+hist(StepsDay, main = "Cantidad de pasos por dia", xlab = "cantidad de pasos")
+
+```
+
+3. Calcule e informe la media y la mediana del número total de pasos dados por día.
+```{r}
+prom <- round(mean(StepsDay, na.rm = TRUE),1)
+med <- median(StepsDay, na.rm = TRUE)
+```
+ El promedio de pasos por dia de ese mes para ese individuo de de `r prom` y la mediana de pasos por dia fue de `r med`.
+
+## ¿Cuál es el patrón de actividad diaria promedio?
+
+1. Haga una gráfica de series de tiempo (es decir tipo = "l") del intervalo de 5 minutos (eje x) y el número medio de pasos dados, promediado en todos los días (eje y)
+```{r}
+StepsPerInterval <- tapply(df$steps, df$interval, mean, na.rm = TRUE)
+plot(as.numeric(names(StepsPerInterval)), 
+     StepsPerInterval, 
+     xlab = "Interval", 
+     ylab = "Steps", 
+     main = "Promedio diario de actividad", 
+     type = "l")
+
+```
+
+
+2. ¿Qué intervalo de 5 minutos, en promedio a lo largo de todos los días del conjunto de datos, contiene el número máximo de pasos?
+```{r}
+ df[which.max(df$steps), ]$interval
+```
+el intervalo de 5 minutos con la mayor cantidad de pasos es `r  df[which.max(df$steps), ]$interval`
+
+## Imputación de valores perdidos
+
+1. Calcule e informe el número total de valores faltantes en el conjunto de datos (es decir, el número total de filas con N/ As)
+
+```{r}
+sum(is.na(df))
+```
+
+La cantidad de filas con datos faltante en el marco de datos es `r sum(is.na(df))`
+
+2. Diseñe una estrategia para completar todos los valores faltantes en el conjunto de datos. La estrategia no necesita ser sofisticada. Por ejemplo, podría usar la media / mediana de ese día, o la media de ese intervalo de 5 minutos, etc.
+
+```{r}
+apply(is.na(df),2, sum)
+```
+Solo la variable steps contiene valores faltantes con `r apply(is.na(df),2, sum)[1]` , para imputar los datos faltantes utlizaremos la mediana por motivos de que es un estadistico menos sensible a la variacion de los datos y a los valores atípicos.
+
+```{r}
+
+df$steps[is.na(df$steps)] <- median(df$steps, na.rm = TRUE)
+
+```
+
+3. Cree un nuevo conjunto de datos que sea igual al conjunto de datos original pero con los datos faltantes completados.
+```{r}
+df2 <- df
+```
+
+4. Haga un histograma del número total de pasos dados cada día y Calcule e informe la  media  y la  mediana del  número total de pasos dados por día. ¿Estos valores difieren de las estimaciones de la primera parte de la tarea? ¿Cuál es el impacto de imputar los datos faltantes a las estimaciones del número total diario de pasos?
+```{r}
+PerDay <- tapply(df2$steps, df2$date, sum)
+hist(PerDay, main = "cantidad de pasos por dia sin valores faltantes")
+
+prom2 <- round(mean(PerDay),1)
+med2 <- round(median(PerDay),1)
+```
+
+el promedio con valores imputados de los pasos por dia es de `r prom2` y la mediana de `r med2`.
+
